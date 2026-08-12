@@ -4,6 +4,9 @@ name: Enable GitHub Pages
 # can be deleted. Safe to re-run; it updates the source if the site exists.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/enable-pages.yml"]
 
 permissions:
   pages: write
