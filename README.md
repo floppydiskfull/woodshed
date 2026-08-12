@@ -3,20 +3,15 @@
 A guitar tab library that auto-scrolls while you play. One HTML file, no build step,
 no accounts, no subscription.
 
+**Use it here: <https://floppydiskfull.github.io/woodshed/>**
+
+On your phone, open that link and Share → **Add to Home Screen** — it launches
+fullscreen like a native app, and the screen stays awake while it scrolls.
+
 The songs live in this repo as plain `.txt` files. Everything personal — which shelf a
 song sits on, tabs you add yourself, your scroll speed — stays in your own browser and
-is never uploaded.
-
-## Setting it up
-
-1. Create a **public** repo (free GitHub Pages only serves public repos).
-2. Copy these files into it and push to `main`.
-3. Settings → Pages → Source: **Deploy from a branch**, branch `main`, folder `/ (root)`.
-4. Wait a minute, then open `https://<you>.github.io/<repo>/`.
-5. On your phone: Share → **Add to Home Screen**. It launches fullscreen, no browser bars.
-
-Send that same link to anyone. They get the whole library, read-only, with their own
-private shelves. Nothing for them to install or sign into.
+is never uploaded. Anyone with the link gets the whole library, read-only, with their
+own private shelves.
 
 ## Adding a tab
 
@@ -59,13 +54,34 @@ The token is stored in that browser's local storage, so only put one on a device
 control, and keep the scope to this single repo. Without a token the app is read-only,
 which is the right setup for most people.
 
-## Running the index locally
+## Backups
 
-```
-node scripts/build-index.mjs
-```
+Your own tabs live only in your browser. Settings has three ways to keep them safe:
 
-Node 18+. No dependencies.
+- **Save backup file** — downloads a dated `woodshed-backup.json` you can stash anywhere
+  or send to a friend.
+- **Choose auto-backup folder** (desktop Chrome/Edge) — pick a folder once and every
+  save writes your tabs there as `.txt` files plus a `backup.json`.
+- **Merge into my tabs** — paste any backup and it merges: newer edits win, duplicates
+  are skipped, your shelf choices are never overwritten. Safe to repeat, in either
+  direction, between any two people.
+
+## Running your own copy
+
+This site is one deployment of the app — the repo is also a kit if you'd rather have
+your own library:
+
+1. Fork this repo (or copy the files into a new **public** repo — free GitHub Pages
+   only serves public repos). You may want to empty out `tabs/` first.
+2. Settings → Pages → Source: **Deploy from a branch**, branch `main`, folder `/ (root)`.
+3. Wait a minute, then open `https://<you>.github.io/<repo>/`.
+
+To rebuild the tab index by hand: `node scripts/build-index.mjs` (Node 18+, no
+dependencies) — though the Action normally does this for you.
+
+## Release notes
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## A note on the tabs themselves
 
