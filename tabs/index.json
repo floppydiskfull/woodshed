@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-12T03:01:33.025Z",
-  "count": 2,
+  "generated": "2026-08-12T03:09:07.032Z",
+  "count": 3,
   "tabs": [
     {
       "path": "tabs/chromatic-warm-up.txt",
@@ -12,6 +12,13 @@
     {
       "path": "tabs/e-minor-pentatonic.txt",
       "title": "E minor pentatonic",
+      "artist": "Exercise",
+      "tuning": "E A D G B e",
+      "capo": ""
+    },
+    {
+      "path": "tabs/g-major-scale.txt",
+      "title": "G major scale",
       "artist": "Exercise",
       "tuning": "E A D G B e",
       "capo": ""
