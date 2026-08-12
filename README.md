@@ -5,6 +5,8 @@ no accounts, no subscription.
 
 **Use it here: <https://floppydiskfull.github.io/woodshed/>**
 
+![Woodshed playing a tab — auto-scroll player with a fretboard scrub bar](og.png)
+
 On your phone, open that link and Share → **Add to Home Screen** — it launches
 fullscreen like a native app, and the screen stays awake while it scrolls.
 
