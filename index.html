@@ -170,7 +170,7 @@ button { font-family:inherit; color:inherit; background:none; border:none; curso
 "use strict";
 
 /* ============================================================ version + data */
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 const SCHEMA = 3;
 const KEY = "woodshed";
 
@@ -232,7 +232,7 @@ let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(store)); storageOK = true; }
+    try { localStorage.setItem(KEY, JSON.stringify(store)); storageOK = true; writeBackupFolder(); }
     catch (e) {
       storageOK = false;
       /* most likely the offline cache got fat — drop it and retry once */
@@ -324,6 +324,81 @@ async function publish(tab) {
   const put = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
   if (!put.ok) throw new Error("GitHub said no (" + put.status + ")");
   return path;
+}
+
+/* =================================================================== backups */
+function backupJSON() {
+  return { app:"woodshed", version:APP_VERSION, schema:SCHEMA, tabs:store.tabs, shelves:store.shelves };
+}
+
+/* Directory handles can't live in localStorage, so they get a tiny IndexedDB
+   box of their own. Everything here is Chromium-desktop-only and inert elsewhere. */
+const FS_SUPPORTED = "showDirectoryPicker" in window;
+let backupDir = null;      // connected FileSystemDirectoryHandle
+let backupDirStored = false; // a handle exists in IndexedDB (may need re-approval)
+
+function idbHandle(op, value) {
+  return new Promise((resolve) => {
+    const req = indexedDB.open("woodshed-aux", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("handles");
+    req.onerror = () => resolve(null);
+    req.onsuccess = () => {
+      const db = req.result;
+      try {
+        const tx = db.transaction("handles", op === "get" ? "readonly" : "readwrite");
+        const os = tx.objectStore("handles");
+        const r = op === "get" ? os.get("backupDir") : op === "set" ? os.put(value, "backupDir") : os.delete("backupDir");
+        r.onsuccess = () => resolve(op === "get" ? r.result : true);
+        r.onerror = () => resolve(null);
+        tx.oncomplete = () => db.close();
+      } catch (e) { resolve(null); db.close(); }
+    };
+  });
+}
+
+async function restoreBackupDir() {
+  if (!FS_SUPPORTED) return;
+  const handle = await idbHandle("get");
+  if (!handle) return;
+  backupDirStored = true;
+  try {
+    if ((await handle.queryPermission({ mode: "readwrite" })) === "granted") backupDir = handle;
+  } catch (e) {}
+}
+
+/* Needs a user gesture; called from Settings. */
+async function reconnectBackupDir() {
+  const handle = await idbHandle("get");
+  if (!handle) return false;
+  try {
+    if ((await handle.requestPermission({ mode: "readwrite" })) === "granted") {
+      backupDir = handle;
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+async function writeBackupFolder() {
+  if (!backupDir) return;
+  try {
+    const file = await backupDir.getFileHandle("woodshed-backup.json", { create: true });
+    const w = await file.createWritable();
+    await w.write(JSON.stringify(backupJSON(), null, 2) + "\n");
+    await w.close();
+    const tabsDir = await backupDir.getDirectoryHandle("tabs", { create: true });
+    for (const t of store.tabs) {
+      const fh = await tabsDir.getFileHandle(slugify(t.title) + ".txt", { create: true });
+      const tw = await fh.createWritable();
+      await tw.write(frontMatter(t) + (t.content || ""));
+      await tw.close();
+    }
+  } catch (e) {
+    if (e && e.name === "NotAllowedError") {
+      backupDir = null;
+      toast("Backup folder needs re-approval — see Settings");
+    }
+  }
 }
 
 /* ================================================================== plumbing */
@@ -795,16 +870,25 @@ function Settings() {
         '<div class="field grow"><label for="s-out">Your own tabs (backup)</label>' +
           '<textarea id="s-out" class="ta" readonly spellcheck="false"></textarea></div>' +
         '<button class="btn" data-copy>Copy backup</button>' +
+        '<button class="btn" data-savefile>Save backup file</button>' +
+        (FS_SUPPORTED
+          ? (backupDir
+              ? '<p class="hint">Auto-backup folder connected: <b>' + esc(backupDir.name) + "</b>. " +
+                "Every save writes your tabs there as .txt files plus a backup.json.</p>" +
+                '<button class="btn" data-dir-off>Stop folder backup</button>'
+              : backupDirStored
+                ? '<button class="btn" data-dir-reconnect>Reconnect backup folder</button>'
+                : '<button class="btn" data-dir-choose>Choose auto-backup folder</button>')
+          : "") +
         '<div class="field"><label for="s-in">Restore from backup</label>' +
           '<textarea id="s-in" class="ta ta-short" spellcheck="false" placeholder="{ \u2026 }"></textarea></div>' +
         '<p class="err" hidden></p>' +
-        '<button class="btn" data-restore>Add these tabs</button>' +
+        '<button class="btn" data-restore>Merge into my tabs</button>' +
       "</div></div>");
 
   $("#s-repo", screen).value = store.settings.repo || "";
   $("#s-token", screen).value = store.settings.token || "";
-  $("#s-out", screen).value = JSON.stringify(
-    { app:"woodshed", version:APP_VERSION, schema:SCHEMA, tabs:store.tabs, shelves:store.shelves }, null, 2);
+  $("#s-out", screen).value = JSON.stringify(backupJSON(), null, 2);
 
   $("[data-save]", screen).addEventListener("click", () => {
     store.settings.repo = $("#s-repo", screen).value.trim();
@@ -830,6 +914,36 @@ function Settings() {
     try { await navigator.clipboard.writeText(ta.value); toast("Copied"); }
     catch (e) { ta.select(); toast("Select all, then copy"); }
   });
+  $("[data-savefile]", screen).addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(backupJSON(), null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "woodshed-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+  const dirChoose = $("[data-dir-choose]", screen);
+  if (dirChoose) dirChoose.addEventListener("click", async () => {
+    try {
+      const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+      backupDir = handle; backupDirStored = true;
+      await idbHandle("set", handle);
+      writeBackupFolder();
+      toast("Backing up to “" + handle.name + "”");
+      render();
+    } catch (e) {} /* picker dismissed */
+  });
+  const dirReconnect = $("[data-dir-reconnect]", screen);
+  if (dirReconnect) dirReconnect.addEventListener("click", async () => {
+    if (await reconnectBackupDir()) { writeBackupFolder(); toast("Folder backup reconnected"); render(); }
+    else { backupDirStored = false; await idbHandle("del"); toast("Couldn’t reconnect — choose the folder again"); render(); }
+  });
+  const dirOff = $("[data-dir-off]", screen);
+  if (dirOff) dirOff.addEventListener("click", async () => {
+    backupDir = null; backupDirStored = false;
+    await idbHandle("del");
+    toast("Folder backup off"); render();
+  });
   $("[data-restore]", screen).addEventListener("click", () => {
     const err = $(".err", screen);
     try {
@@ -838,11 +952,28 @@ function Settings() {
       p = migrate(p);
       const incoming = (p.tabs || []).filter((t) => t && typeof t.content === "string");
       if (!incoming.length) throw new Error("empty");
-      const ids = new Set(store.tabs.map((t) => t.id));
-      incoming.forEach((t) => { if (ids.has(t.id)) t.id = uid(); });
-      store.tabs = incoming.concat(store.tabs);
-      Object.assign(store.shelves, p.shelves || {});
-      save(); toast("Added " + incoming.length + " tab" + (incoming.length===1?"":"s")); go("library");
+      /* Merge, don't append: same id keeps the newer edit, identical copies are
+         skipped, and re-importing the same backup is always a no-op. */
+      const byId = new Map(store.tabs.map((t) => [t.id, t]));
+      const sig = (t) => (t.title || "") + "\u0000" + (t.content || "");
+      const sigs = new Set(store.tabs.map(sig));
+      let added = 0, updated = 0, same = 0;
+      incoming.forEach((t) => {
+        const cur = byId.get(t.id);
+        if (cur) {
+          if ((t.updatedAt || 0) > (cur.updatedAt || 0)) {
+            store.tabs[store.tabs.indexOf(cur)] = t; byId.set(t.id, t); updated++;
+          } else same++;
+        } else if (sigs.has(sig(t))) same++;
+        else { store.tabs.unshift(t); byId.set(t.id, t); sigs.add(sig(t)); added++; }
+      });
+      /* Shelf choices are personal — only fill in ones this device hasn't made. */
+      Object.keys(p.shelves || {}).forEach((k) => {
+        if (!(k in store.shelves)) store.shelves[k] = p.shelves[k];
+      });
+      save();
+      toast("Merged: " + added + " added, " + updated + " updated, " + same + " unchanged");
+      go("library");
     } catch (e) {
       err.hidden = false;
       err.textContent = "That isn't a Woodshed backup. Paste the whole block, braces included.";
@@ -891,6 +1022,8 @@ const inlayPos = (n) => ((FRETS[n - 2] || 0) + FRETS[n - 1]) / 2;
 
 /* ====================================================================== boot */
 load();
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+restoreBackupDir().then(() => { if (view.name === "settings") render(); });
 render();
 fetchIndex();
 window.addEventListener("online", fetchIndex);
