@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#12151A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Woodshed">
+<title>Woodshed</title>
+<link rel="manifest" href='data:application/json,{"name":"Woodshed","short_name":"Woodshed","start_url":".","display":"standalone","background_color":"%2312151A","theme_color":"%2312151A"}'>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --ink:#12151A; --surface:#171B21; --surface2:#1E242C; --rule:#2B333D;
+  --paper:#E9E4D9; --muted:#8B95A1;
+  --brass:#C9964B; --steel:#8FA3B8; --sage:#7FA37A; --danger:#C4706A;
+  --ui:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*,*::before,*::after { box-sizing:border-box; }
+html,body { height:100%; margin:0; overflow:hidden; }
+body { background:var(--ink); color:var(--paper); font-family:var(--ui);
+  -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
+button { font-family:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+#app { position:fixed; inset:0; }
+.screen { position:absolute; inset:0; display:flex; flex-direction:column; }
+
+.head { display:flex; align-items:center; justify-content:space-between; padding:18px 16px 10px;
+  padding-top:calc(18px + env(safe-area-inset-top,0px)); }
+.brand { display:flex; align-items:center; gap:10px; }
+.strings { display:flex; flex-direction:column; justify-content:center; gap:3px; width:22px; }
+.strings i { display:block; width:100%; background:var(--rule); border-radius:1px; }
+.strings i:nth-child(2) { background:var(--brass); }
+.head h1 { margin:0; font-size:15px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; }
+
+.btn { font-size:13px; font-weight:500; padding:8px 14px; border-radius:2px;
+  border:1px solid var(--rule); background:var(--surface2); }
+.btn[disabled] { opacity:.35; cursor:default; }
+.btn-primary { background:var(--brass); border-color:var(--brass); color:#14171C; font-weight:600; }
+
+.tools { padding:0 16px 12px; display:flex; flex-direction:column; gap:10px; }
+.search { width:100%; background:var(--surface); border:1px solid var(--rule); border-radius:2px;
+  color:var(--paper); font-family:inherit; font-size:16px; padding:10px 12px; }
+.search::placeholder { color:var(--muted); }
+.pills { display:flex; gap:6px; flex-wrap:wrap; }
+.pill { --pc:var(--muted); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  padding:6px 10px; border:1px solid var(--rule); border-radius:2px; color:var(--muted); }
+.pill.on { color:#14171C; background:var(--pc); border-color:var(--pc); font-weight:600; }
+
+.list { flex:1; overflow-y:auto; padding:0 16px 24px; -webkit-overflow-scrolling:touch; }
+.group { margin-bottom:26px; }
+.eyebrow { --pc:var(--muted); display:flex; align-items:center; gap:8px; padding:6px 0 10px;
+  font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+.dot { width:6px; height:6px; border-radius:50%; background:var(--pc); flex:none; }
+.rule { flex:1; height:1px; background:var(--rule); }
+.count { font-variant-numeric:tabular-nums; }
+.card { display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:13px 0; border-bottom:1px solid var(--rule); }
+.card:active { background:var(--surface); }
+.card-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.card-title { font-size:16px; font-weight:500; letter-spacing:-.01em; }
+.card-meta { font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.badge { flex:none; font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--rule); border-radius:2px; padding:3px 6px; }
+.badge.mine { color:var(--brass); border-color:rgba(201,150,75,.4); }
+
+.empty { padding:44px 4px; border-top:1px solid var(--rule); }
+.empty h2 { margin:0 0 8px; font-size:15px; font-weight:600; }
+.empty p { margin:0; font-size:13px; line-height:1.6; color:var(--muted); max-width:44ch; }
+
+.foot { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 16px; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--rule); font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); }
+.foot-actions { display:flex; gap:14px; align-items:center; }
+.link { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--brass); padding:4px; }
+.link-danger { color:var(--danger); }
+.ver { font-family:var(--mono); letter-spacing:0; text-transform:none; }
+.sync { display:inline-flex; align-items:center; gap:6px; }
+.sync i { width:6px; height:6px; border-radius:50%; background:var(--muted); display:block; }
+.sync.ok i { background:var(--sage); }
+.sync.busy i { background:var(--brass); }
+.sync.off i { background:var(--danger); }
+
+.phead { display:flex; align-items:center; gap:8px; padding:12px 10px;
+  padding-top:calc(12px + env(safe-area-inset-top,0px)); border-bottom:1px solid var(--rule); }
+.icon { width:34px; height:34px; font-size:22px; line-height:1; color:var(--muted); flex:none; }
+.ptitle { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.ptitle b { font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ptitle span { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.sheet { padding:12px 14px; background:var(--surface); border-bottom:1px solid var(--rule);
+  display:flex; flex-direction:column; gap:10px; }
+.sheet-row { display:flex; gap:6px; flex-wrap:wrap; }
+
+.stage { flex:1; overflow:auto; padding:14px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+.tabtext { margin:0; font-family:var(--mono); font-weight:400; line-height:1.65;
+  white-space:pre; display:inline-block; min-width:100%; color:var(--paper); tab-size:4; }
+.tail { height:55vh; }
+.loading { color:var(--muted); font-family:var(--mono); font-size:12px; }
+
+.controls { border-top:1px solid var(--rule); background:var(--surface); padding:10px 14px 14px;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom,0px)); }
+.crow { display:flex; align-items:center; gap:12px; margin-top:12px; }
+.play { width:52px; height:52px; flex:none; border-radius:2px; border:1px solid var(--rule);
+  background:var(--surface2); font-size:16px; letter-spacing:.06em; }
+.play.on { background:var(--brass); border-color:var(--brass); color:#14171C; }
+.slider-wrap { flex:1; min-width:0; }
+.slider-head { display:flex; justify-content:space-between; font-size:10px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+.num { font-family:var(--mono); color:var(--brass); font-variant-numeric:tabular-nums; }
+.stepper { display:flex; align-items:center; gap:8px; }
+.step { min-width:34px; height:34px; border:1px solid var(--rule); border-radius:2px;
+  background:var(--surface2); font-size:13px; color:var(--muted); }
+.size { display:flex; gap:6px; flex:none; }
+.range { flex:1; min-width:0; -webkit-appearance:none; appearance:none; height:34px; background:transparent; }
+.range::-webkit-slider-runnable-track { height:2px; background:var(--rule); }
+.range::-moz-range-track { height:2px; background:var(--rule); }
+.range::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:22px; margin-top:-10px;
+  border-radius:1px; background:var(--brass); }
+.range::-moz-range-thumb { width:14px; height:22px; border:none; border-radius:1px; background:var(--brass); }
+
+.fretboard { position:relative; height:34px; border-radius:2px; cursor:pointer; touch-action:none;
+  background:linear-gradient(180deg,#20262E 0%,#1A1F26 55%,#161A20 100%);
+  border:1px solid var(--rule); overflow:hidden; }
+.nut { position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--paper); opacity:.55; }
+.fret { position:absolute; top:0; bottom:0; width:1px; background:#4A545F; }
+.inlay { position:absolute; top:50%; width:5px; height:5px; margin-left:-2.5px; margin-top:-2.5px;
+  border-radius:50%; background:var(--paper); opacity:.22; }
+.capo { position:absolute; top:-1px; bottom:-1px; width:5px; margin-left:-2.5px; border-radius:2px;
+  background:var(--brass); box-shadow:0 0 10px rgba(201,150,75,.55); }
+
+.form { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field > label, .field > span { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+.field input, .ta { background:var(--surface); border:1px solid var(--rule); border-radius:2px;
+  color:var(--paper); font-family:inherit; font-size:16px; padding:10px 12px; width:100%; }
+.field-row { display:flex; gap:12px; }
+.field-row .field { flex:1; }
+.narrow { max-width:90px; }
+.grow { flex:1; min-height:240px; }
+.ta { font-family:var(--mono); font-size:12px; line-height:1.6; white-space:pre;
+  overflow-wrap:normal; overflow-x:auto; height:100%; min-height:200px; resize:vertical; }
+.ta-short { min-height:90px; height:90px; }
+.danger-row { display:flex; align-items:center; gap:12px; padding-top:6px; font-size:12px; color:var(--muted); }
+.err { margin:0; font-size:12px; color:var(--danger); }
+.hint { margin:0; font-size:12px; line-height:1.6; color:var(--muted); }
+.prose { font-size:13px; line-height:1.65; color:var(--muted); max-width:52ch; }
+.prose b { color:var(--paper); font-weight:600; }
+.prose p { margin:0 0 12px; }
+.kv { display:flex; justify-content:space-between; gap:12px; padding:9px 0;
+  border-bottom:1px solid var(--rule); font-size:13px; }
+.kv span:first-child { color:var(--muted); flex:none; }
+.kv span:last-child { font-family:var(--mono); font-size:12px; text-align:right;
+  overflow:hidden; text-overflow:ellipsis; }
+.toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%); background:var(--brass); color:#14171C; font-size:12px; font-weight:600;
+  padding:9px 16px; border-radius:2px; z-index:50; max-width:88vw; text-align:center; }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+/* ============================================================ version + data */
+const APP_VERSION = "1.1.0";
+const SCHEMA = 3;
+const KEY = "woodshed";
+
+const STATUSES = [
+  { id: "working", label: "Working on", c: "var(--brass)" },
+  { id: "done",    label: "Done",       c: "var(--steel)" },
+  { id: "know",    label: "Know it",    c: "var(--sage)"  }
+];
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g,
+  (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const slugify = (s) => (s || "untitled").toLowerCase().trim()
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "untitled";
+
+/* Everything below `tabs` is personal and never leaves the device. */
+let store = {
+  schema: SCHEMA,
+  tabs: [],          // tabs this person added themselves
+  shelves: {},       // path -> status, for shared tabs
+  hidden: {},        // path -> true, shared tabs this person doesn't want to see
+  cache: {},         // path -> content, so the app works offline
+  index: [],         // last known shared library listing
+  settings: { fontSize: 12, speed: 9, token: "", repo: "" }
+};
+let storageOK = true;
+let syncState = "idle"; // idle | busy | ok | off
+
+const MIGRATIONS = {
+  1: (d) => { d.tabs = (d.tabs || []).map((t) => Object.assign({ tuning:"", capo:"" }, t)); return d; },
+  2: (d) => { d.shelves = {}; d.hidden = {}; d.cache = {}; d.index = []; return d; }
+};
+function migrate(d) {
+  let v = d.schema || 1;
+  while (v < SCHEMA) { if (MIGRATIONS[v]) d = MIGRATIONS[v](d); v++; }
+  d.schema = SCHEMA;
+  return d;
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const p = migrate(JSON.parse(raw));
+      store = {
+        schema: SCHEMA,
+        tabs: Array.isArray(p.tabs) ? p.tabs : [],
+        shelves: p.shelves || {},
+        hidden: p.hidden || {},
+        cache: p.cache || {},
+        index: Array.isArray(p.index) ? p.index : [],
+        settings: Object.assign({ fontSize:12, speed:9, token:"", repo:"" }, p.settings || {})
+      };
+    }
+  } catch (e) { storageOK = false; }
+}
+
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(store)); storageOK = true; }
+    catch (e) {
+      storageOK = false;
+      /* most likely the offline cache got fat — drop it and retry once */
+      store.cache = {};
+      try { localStorage.setItem(KEY, JSON.stringify(store)); storageOK = true; toast("Offline cache cleared to free space"); }
+      catch (e2) { toast("Not saving \u2014 storage is full or blocked"); }
+    }
+  }, 300);
+}
+
+/* =================================================== shared library (GitHub) */
+function repoSlug() {
+  if (store.settings.repo) return store.settings.repo;
+  const host = location.hostname;
+  if (!host.endsWith("github.io")) return "";
+  const owner = host.replace(".github.io", "");
+  const seg = location.pathname.split("/").filter(Boolean)[0];
+  const isProjectPage = seg && !seg.includes(".");
+  return owner + "/" + (isProjectPage ? seg : host);
+}
+
+async function fetchIndex() {
+  syncState = "busy"; paintSync();
+  try {
+    const res = await fetch("./tabs/index.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    store.index = Array.isArray(data.tabs) ? data.tabs : [];
+    syncState = "ok";
+    save();
+  } catch (e) {
+    syncState = store.index.length ? "off" : "idle";
+  }
+  paintSync();
+  if (view.name === "library") render();
+}
+
+async function fetchContent(path) {
+  if (store.cache[path]) return store.cache[path];
+  const res = await fetch("./" + path + "?t=" + Date.now(), { cache: "no-store" });
+  if (!res.ok) throw new Error("Couldn't load " + path);
+  const body = stripFrontMatter(await res.text());
+  store.cache[path] = body;
+  save();
+  return body;
+}
+
+/* Tab files carry their own metadata in a small header block. */
+function stripFrontMatter(text) {
+  const m = text.match(/^([\s\S]*?)\n---\n/);
+  if (!m) return text;
+  if (!/^[A-Za-z]+:/.test(m[1].trim())) return text;
+  return text.slice(m[0].length);
+}
+function frontMatter(t) {
+  const lines = [];
+  if (t.title) lines.push("title: " + t.title);
+  if (t.artist) lines.push("artist: " + t.artist);
+  if (t.tuning) lines.push("tuning: " + t.tuning);
+  if (t.capo) lines.push("capo: " + t.capo);
+  return lines.join("\n") + "\n---\n";
+}
+
+const b64 = (str) => {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+};
+
+async function publish(tab) {
+  const repo = repoSlug();
+  const token = store.settings.token;
+  if (!repo || !token) throw new Error("Add a repo and token in Settings first");
+  const path = "tabs/" + slugify(tab.title) + ".txt";
+  const api = "https://api.github.com/repos/" + repo + "/contents/" + path;
+  const headers = {
+    Authorization: "Bearer " + token,
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json"
+  };
+  let sha = null;
+  const probe = await fetch(api, { headers });
+  if (probe.ok) sha = (await probe.json()).sha;
+  else if (probe.status === 401 || probe.status === 403) throw new Error("Token rejected. Check its scope.");
+
+  const body = { message: (sha ? "Update " : "Add ") + tab.title, content: b64(frontMatter(tab) + tab.content) };
+  if (sha) body.sha = sha;
+  const put = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
+  if (!put.ok) throw new Error("GitHub said no (" + put.status + ")");
+  return path;
+}
+
+/* ================================================================== plumbing */
+const app = document.getElementById("app");
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+function node(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+function toast(msg) {
+  const old = $(".toast"); if (old) old.remove();
+  const el = node('<div class="toast">' + esc(msg) + "</div>");
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+function paintSync() {
+  const el = $(".sync");
+  if (!el) return;
+  el.className = "sync " + syncState;
+  const n = mergedTabs().filter((t) => t.source === "shared").length;
+  $("span", el).textContent =
+    syncState === "busy" ? "Syncing" :
+    syncState === "off" ? "Offline" :
+    n + " shared";
+}
+
+let view = { name: "library", id: null };
+let ui = { query: "", filter: "all" };
+let teardownFns = [];
+
+function go(name, id) { view = { name, id: id == null ? null : id }; render(); }
+function render() {
+  teardownFns.forEach((fn) => { try { fn(); } catch (e) {} });
+  teardownFns = [];
+  app.innerHTML = "";
+  const tab = view.id ? mergedTabs().find((t) => t.id === view.id) : null;
+  if (view.name === "player" && tab) app.appendChild(Player(tab));
+  else if (view.name === "editor") app.appendChild(Editor(tab));
+  else if (view.name === "settings") app.appendChild(Settings());
+  else if (view.name === "about") app.appendChild(About());
+  else app.appendChild(Library());
+  paintSync();
+}
+
+/* One list, two origins: the repo's tabs plus this person's own. */
+function mergedTabs() {
+  const shared = store.index
+    .filter((e) => !store.hidden[e.path])
+    .map((e) => ({
+      id: "shared:" + e.path,
+      source: "shared",
+      path: e.path,
+      title: e.title || e.path,
+      artist: e.artist || "",
+      tuning: e.tuning || "",
+      capo: e.capo || "",
+      status: store.shelves[e.path] || "working",
+      content: store.cache[e.path] || null
+    }));
+  const sharedPaths = new Set(shared.map((t) => t.path));
+  const mine = store.tabs
+    .filter((t) => !(t.path && sharedPaths.has(t.path)))
+    .map((t) => Object.assign({}, t, { id: "local:" + t.id, source: "local" }));
+  return shared.concat(mine);
+}
+const localById = (id) => store.tabs.find((t) => "local:" + t.id === id);
+
+/* =================================================================== library */
+function Library() {
+  const q = ui.query.trim().toLowerCase();
+  const matched = mergedTabs().filter((t) =>
+    !q || t.title.toLowerCase().includes(q) || (t.artist || "").toLowerCase().includes(q));
+  const groups = STATUSES
+    .filter((s) => ui.filter === "all" || ui.filter === s.id)
+    .map((s) => Object.assign({}, s, { items: matched.filter((t) => t.status === s.id) }));
+
+  const screen = node(
+    '<div class="screen">' +
+      '<header class="head"><div class="brand"><span class="strings" aria-hidden="true">' +
+        [0,1,2,3,4,5].map((i) => '<i style="height:' + (1 + i*0.35) + 'px"></i>').join("") +
+        '</span><h1>Woodshed</h1></div>' +
+        '<button class="btn btn-primary" data-new>Add tab</button></header>' +
+      '<div class="tools">' +
+        '<input class="search" placeholder="Search title or artist" spellcheck="false" value="' + esc(ui.query) + '">' +
+        '<div class="pills"><button class="pill' + (ui.filter==="all"?" on":"") + '" data-f="all">All</button>' +
+        STATUSES.map((s) => '<button class="pill' + (ui.filter===s.id?" on":"") + '" style="--pc:' + s.c +
+          '" data-f="' + s.id + '">' + s.label + "</button>").join("") + "</div></div>" +
+      '<div class="list"></div>' +
+      '<footer class="foot">' +
+        '<span class="sync"><i></i><span></span></span>' +
+        '<span class="foot-actions">' +
+          '<button class="link" data-settings>Settings</button>' +
+          '<button class="link ver" data-about>v' + APP_VERSION + "</button></span></footer></div>");
+
+  const list = $(".list", screen);
+  if (!matched.length) {
+    list.appendChild(node('<div class="empty"><h2>' +
+      (store.index.length || store.tabs.length ? "No matches." : "Nothing here yet.") + "</h2><p>" +
+      (store.index.length || store.tabs.length
+        ? "Try a different search, or clear the filter."
+        : "Shared tabs load from this site automatically. To add your own, tap Add tab and paste one in \u2014 spacing is kept exactly, so the fret numbers stay lined up.") +
+      "</p></div>"));
+  } else {
+    groups.forEach((g) => {
+      if (!g.items.length) return;
+      const sec = node('<section class="group"><div class="eyebrow" style="--pc:' + g.c +
+        '"><span class="dot"></span><span>' + g.label + '</span><span class="rule"></span>' +
+        '<span class="count">' + g.items.length + "</span></div></section>");
+      g.items.forEach((t) => {
+        const meta = [t.artist, t.capo ? "capo " + t.capo : null, t.tuning].filter(Boolean).join("  \u00b7  ");
+        const card = node('<button class="card"><span class="card-body">' +
+          '<span class="card-title">' + esc(t.title || "Untitled") + "</span>" +
+          '<span class="card-meta">' + esc(meta || "\u2014") + "</span></span>" +
+          (t.source === "local" ? '<span class="badge mine">Mine</span>' : "") + "</button>");
+        card.addEventListener("click", () => go("player", t.id));
+        sec.appendChild(card);
+      });
+      list.appendChild(sec);
+    });
+  }
+
+  const search = $(".search", screen);
+  search.addEventListener("input", (e) => {
+    ui.query = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const s2 = $(".search");
+    if (s2) { s2.focus(); s2.setSelectionRange(pos, pos); }
+  });
+  $$("[data-f]", screen).forEach((b) => b.addEventListener("click", () => {
+    ui.filter = ui.filter === b.dataset.f ? "all" : b.dataset.f; render();
+  }));
+  $("[data-new]", screen).addEventListener("click", () => go("editor", null));
+  $("[data-settings]", screen).addEventListener("click", () => go("settings"));
+  $("[data-about]", screen).addEventListener("click", () => go("about"));
+  return screen;
+}
+
+/* ==================================================================== player */
+function Player(tab) {
+  const meta = [tab.artist, tab.capo ? "capo " + tab.capo : null, tab.tuning].filter(Boolean).join("  \u00b7  ");
+  const screen = node(
+    '<div class="screen">' +
+      '<header class="phead">' +
+        '<button class="icon" data-back aria-label="Back to library">\u2039</button>' +
+        '<div class="ptitle"><b>' + esc(tab.title || "Untitled") + "</b><span>" + esc(meta) + "</span></div>" +
+        '<button class="icon" data-menu aria-label="Tab options">\u22ef</button></header>' +
+      '<div class="sheet" hidden>' +
+        '<div class="sheet-row">' + STATUSES.map((s) => '<button class="pill' +
+          (tab.status===s.id?" on":"") + '" style="--pc:' + s.c + '" data-s="' + s.id + '">' +
+          s.label + "</button>").join("") + "</div>" +
+        '<div class="sheet-row">' +
+          '<button class="btn" data-fit>Fit to width</button>' +
+          '<button class="btn" data-edit>' + (tab.source === "shared" ? "Copy to my tabs" : "Edit tab") + "</button>" +
+          (tab.source === "shared" ? '<button class="btn" data-hide>Hide from my list</button>' : "") +
+        "</div></div>" +
+      '<div class="stage"><pre class="tabtext"></pre><div class="tail"></div></div>' +
+      '<div class="controls">' +
+        '<div class="fretboard" role="slider" tabindex="0" aria-label="Position in song" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
+          '<span class="nut"></span>' +
+          FRETS.map((p) => '<span class="fret" style="left:' + (p*100) + '%"></span>').join("") +
+          INLAYS.map((n) => '<span class="inlay" style="left:' + (inlayPos(n)*100) + '%"></span>').join("") +
+          '<span class="inlay" style="left:' + (inlayPos(12)*100) + '%;top:26%"></span>' +
+          '<span class="inlay" style="left:' + (inlayPos(12)*100) + '%;top:74%"></span>' +
+          '<span class="capo" style="left:0%"></span></div>' +
+        '<div class="crow">' +
+          '<button class="play" data-play aria-label="Start scrolling">\u25b6</button>' +
+          '<div class="slider-wrap"><div class="slider-head"><span>Speed</span>' +
+            '<span class="num" data-speednum>' + store.settings.speed + "</span></div>" +
+            '<div class="stepper"><button class="step" data-slower aria-label="Slower">\u2212</button>' +
+            '<input class="range" type="range" min="1" max="40" value="' + store.settings.speed + '" aria-label="Scroll speed">' +
+            '<button class="step" data-faster aria-label="Faster">+</button></div></div>' +
+          '<div class="size"><button class="step" data-smaller aria-label="Smaller text">A\u2212</button>' +
+            '<button class="step" data-bigger aria-label="Larger text">A+</button></div>' +
+      "</div></div></div>");
+
+  const stage = $(".stage", screen);
+  const pre = $(".tabtext", screen);
+  const capo = $(".capo", screen);
+  const board = $(".fretboard", screen);
+  const playBtn = $("[data-play]", screen);
+  const range = $(".range", screen);
+  const speedNum = $("[data-speednum]", screen);
+  pre.style.fontSize = store.settings.fontSize + "px";
+
+  let content = tab.content;
+  if (content != null) pre.textContent = content;
+  else {
+    pre.className = "tabtext loading";
+    pre.textContent = "Loading\u2026";
+    fetchContent(tab.path).then((c) => {
+      content = c; tab.content = c;
+      pre.className = "tabtext"; pre.textContent = c;
+    }).catch(() => {
+      pre.className = "tabtext loading";
+      pre.textContent = "Couldn't load this one. It'll be here once you're back online.";
+    });
+  }
+
+  let playing = false, raf = 0, carry = 0, last = 0, wake = null;
+  const progress = () => {
+    const span = stage.scrollHeight - stage.clientHeight;
+    return span > 0 ? Math.min(1, stage.scrollTop / span) : 0;
+  };
+  function paintProgress() {
+    const p = progress();
+    capo.style.left = (p * 100) + "%";
+    board.setAttribute("aria-valuenow", Math.round(p * 100));
+  }
+  stage.addEventListener("scroll", paintProgress, { passive: true });
+
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 0.1);
+    last = now;
+    carry += store.settings.speed * 1.6 * dt;
+    const whole = Math.floor(carry);
+    if (whole >= 1) {
+      carry -= whole;
+      const before = stage.scrollTop;
+      stage.scrollTop = before + whole;
+      if (stage.scrollTop <= before) { setPlaying(false); return; }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  async function setPlaying(on) {
+    playing = on;
+    playBtn.classList.toggle("on", on);
+    playBtn.textContent = on ? "\u275a\u275a" : "\u25b6";
+    playBtn.setAttribute("aria-label", on ? "Stop scrolling" : "Start scrolling");
+    cancelAnimationFrame(raf);
+    if (on) {
+      last = performance.now(); carry = 0;
+      raf = requestAnimationFrame(frame);
+      if (navigator.wakeLock) { try { wake = await navigator.wakeLock.request("screen"); } catch (e) {} }
+    } else if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+  }
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+
+  let press = null;
+  stage.addEventListener("pointerdown", (e) => { press = { x:e.clientX, y:e.clientY, t:performance.now() }; });
+  stage.addEventListener("pointerup", (e) => {
+    if (!press) return;
+    const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y);
+    const quick = performance.now() - press.t < 500;
+    press = null;
+    if (moved < 8 && quick) setPlaying(!playing);
+  });
+
+  let dragging = false;
+  const scrub = (clientX) => {
+    const r = board.getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    stage.scrollTop = (stage.scrollHeight - stage.clientHeight) * f;
+    paintProgress();
+  };
+  board.addEventListener("pointerdown", (e) => { dragging = true; board.setPointerCapture(e.pointerId); scrub(e.clientX); });
+  board.addEventListener("pointermove", (e) => { if (dragging) scrub(e.clientX); });
+  board.addEventListener("pointerup", () => { dragging = false; });
+  board.addEventListener("pointercancel", () => { dragging = false; });
+  board.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const r = board.getBoundingClientRect();
+      scrub(r.left + r.width * (progress() + (e.key === "ArrowLeft" ? -0.03 : 0.03)));
+    }
+  });
+
+  function setSpeed(v) {
+    store.settings.speed = Math.max(1, Math.min(40, v));
+    range.value = store.settings.speed;
+    speedNum.textContent = store.settings.speed;
+    save();
+  }
+  range.addEventListener("input", (e) => setSpeed(Number(e.target.value)));
+  $("[data-slower]", screen).addEventListener("click", () => setSpeed(store.settings.speed - 1));
+  $("[data-faster]", screen).addEventListener("click", () => setSpeed(store.settings.speed + 1));
+
+  function setFont(v) {
+    store.settings.fontSize = Math.max(6, Math.min(24, Math.round(v * 10) / 10));
+    pre.style.fontSize = store.settings.fontSize + "px";
+    save();
+  }
+  $("[data-smaller]", screen).addEventListener("click", () => setFont(store.settings.fontSize - 1));
+  $("[data-bigger]", screen).addEventListener("click", () => setFont(store.settings.fontSize + 1));
+  $("[data-fit]", screen).addEventListener("click", () => {
+    let longest = 1;
+    (content || "").split("\n").forEach((l) => { longest = Math.max(longest, l.replace(/\t/g,"    ").length); });
+    setFont((stage.clientWidth - 28) / (longest * 0.6));
+    $(".sheet", screen).hidden = true;
+  });
+
+  $("[data-menu]", screen).addEventListener("click", () => {
+    const sheet = $(".sheet", screen); sheet.hidden = !sheet.hidden;
+  });
+  $$("[data-s]", screen).forEach((b) => b.addEventListener("click", () => {
+    if (tab.source === "shared") store.shelves[tab.path] = b.dataset.s;
+    else { const t = localById(tab.id); if (t) { t.status = b.dataset.s; t.updatedAt = Date.now(); } }
+    save(); render();
+  }));
+  const hide = $("[data-hide]", screen);
+  if (hide) hide.addEventListener("click", () => {
+    store.hidden[tab.path] = true; save(); toast("Hidden. Unhide in Settings."); go("library");
+  });
+  $("[data-edit]", screen).addEventListener("click", () => {
+    if (tab.source === "shared") {
+      if (content == null) { toast("Wait for it to load first"); return; }
+      const copy = { id: uid(), title: tab.title, artist: tab.artist, status: tab.status,
+        tuning: tab.tuning, capo: tab.capo, content: content, createdAt: Date.now(), updatedAt: Date.now() };
+      store.tabs.unshift(copy);
+      store.hidden[tab.path] = true;
+      save();
+      go("editor", "local:" + copy.id);
+    } else go("editor", tab.id);
+  });
+  $("[data-back]", screen).addEventListener("click", () => go("library"));
+
+  const onKey = (e) => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); setPlaying(!playing); } };
+  document.addEventListener("keydown", onKey);
+  teardownFns.push(() => {
+    cancelAnimationFrame(raf);
+    document.removeEventListener("keydown", onKey);
+    if (wake) { try { wake.release(); } catch (e) {} }
+  });
+  return screen;
+}
+
+/* ==================================================================== editor */
+function Editor(tab) {
+  const existing = tab ? localById(tab.id) : null;
+  const draft = existing ? Object.assign({}, existing)
+    : { id: uid(), title:"", artist:"", status:"working", tuning:"", capo:"", content:"" };
+  const canPublish = !!(store.settings.token && repoSlug());
+
+  const screen = node(
+    '<div class="screen">' +
+      '<header class="phead"><button class="icon" data-back aria-label="Cancel">\u2039</button>' +
+        '<div class="ptitle"><b>' + (existing ? "Edit tab" : "New tab") + "</b></div>" +
+        '<button class="btn btn-primary" data-save>Save</button></header>' +
+      '<div class="form">' +
+        '<div class="field"><label for="f-title">Title</label><input id="f-title"></div>' +
+        '<div class="field"><label for="f-artist">Artist</label><input id="f-artist"></div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="f-tuning">Tuning</label><input id="f-tuning" placeholder="E A D G B e"></div>' +
+          '<div class="field narrow"><label for="f-capo">Capo</label><input id="f-capo" placeholder="\u2014"></div></div>' +
+        '<div class="field"><span>Shelf</span><div class="pills">' +
+          STATUSES.map((s) => '<button class="pill' + (draft.status===s.id?" on":"") + '" style="--pc:' +
+            s.c + '" data-s="' + s.id + '">' + s.label + "</button>").join("") + "</div></div>" +
+        '<div class="field grow"><label for="f-content">Tab</label>' +
+          '<textarea id="f-content" class="ta" spellcheck="false" placeholder="Paste here. Spacing is kept exactly as copied."></textarea></div>' +
+        (canPublish ? '<button class="btn" data-publish>Publish to shared library</button>' : "") +
+        (existing ? '<div class="danger-row"><button class="link link-danger" data-del>Delete tab</button></div>' : "") +
+      "</div></div>");
+
+  $("#f-title", screen).value = draft.title || "";
+  $("#f-artist", screen).value = draft.artist || "";
+  $("#f-tuning", screen).value = draft.tuning || "";
+  $("#f-capo", screen).value = draft.capo || "";
+  $("#f-content", screen).value = draft.content || "";
+
+  const read = () => {
+    draft.title = $("#f-title", screen).value;
+    draft.artist = $("#f-artist", screen).value;
+    draft.tuning = $("#f-tuning", screen).value;
+    draft.capo = $("#f-capo", screen).value;
+    draft.content = $("#f-content", screen).value;
+  };
+  $$("[data-s]", screen).forEach((b) => b.addEventListener("click", () => {
+    draft.status = b.dataset.s;
+    $$("[data-s]", screen).forEach((x) => x.classList.toggle("on", x.dataset.s === draft.status));
+  }));
+
+  const commit = () => {
+    read();
+    if (!draft.title.trim() && !draft.content.trim()) { toast("Add a title or a tab first"); return false; }
+    draft.updatedAt = Date.now();
+    const i = store.tabs.findIndex((t) => t.id === draft.id);
+    if (i >= 0) store.tabs[i] = draft;
+    else { draft.createdAt = Date.now(); store.tabs.unshift(draft); }
+    save();
+    return true;
+  };
+  $("[data-save]", screen).addEventListener("click", () => { if (commit()) go("player", "local:" + draft.id); });
+
+  const pub = $("[data-publish]", screen);
+  if (pub) pub.addEventListener("click", async () => {
+    if (!commit()) return;
+    pub.disabled = true; pub.textContent = "Publishing\u2026";
+    try {
+      const path = await publish(draft);
+      draft.path = path;
+      save();
+      toast("Published. It joins the shared list in about a minute.");
+      go("library");
+    } catch (e) {
+      toast(e.message || "Publish failed");
+      pub.disabled = false; pub.textContent = "Publish to shared library";
+    }
+  });
+
+  const del = $("[data-del]", screen);
+  if (del) {
+    let armed = false;
+    del.addEventListener("click", () => {
+      if (!armed) { armed = true; del.textContent = "Tap again to delete"; return; }
+      store.tabs = store.tabs.filter((t) => t.id !== draft.id);
+      save(); go("library");
+    });
+  }
+  $("[data-back]", screen).addEventListener("click", () => existing ? go("player", tab.id) : go("library"));
+  return screen;
+}
+
+/* ================================================================== settings */
+function Settings() {
+  const hiddenPaths = Object.keys(store.hidden).filter((p) => store.hidden[p]);
+  const screen = node(
+    '<div class="screen">' +
+      '<header class="phead"><button class="icon" data-back aria-label="Back">\u2039</button>' +
+        '<div class="ptitle"><b>Settings</b></div><span style="width:34px"></span></header>' +
+      '<div class="form">' +
+        '<p class="hint">Everything here stays on this device. Leave the token empty if you only want to read the shared library \u2014 the app works fine without one.</p>' +
+        '<div class="field"><label for="s-repo">Repository</label>' +
+          '<input id="s-repo" placeholder="' + esc(repoSlug() || "owner/repo") + '" spellcheck="false"></div>' +
+        '<div class="field"><label for="s-token">GitHub token (optional)</label>' +
+          '<input id="s-token" type="password" placeholder="github_pat_\u2026" spellcheck="false" autocomplete="off"></div>' +
+        '<p class="hint">Use a fine-grained token limited to this one repository, with Contents set to Read and write. Nothing else.</p>' +
+        '<button class="btn btn-primary" data-save>Save settings</button>' +
+        '<button class="btn" data-refresh>Refresh shared library</button>' +
+        '<button class="btn" data-download>Download all for offline</button>' +
+        (hiddenPaths.length ? '<button class="btn" data-unhide>Unhide ' + hiddenPaths.length + " hidden tab" +
+          (hiddenPaths.length === 1 ? "" : "s") + "</button>" : "") +
+        '<div class="field grow"><label for="s-out">Your own tabs (backup)</label>' +
+          '<textarea id="s-out" class="ta" readonly spellcheck="false"></textarea></div>' +
+        '<button class="btn" data-copy>Copy backup</button>' +
+        '<div class="field"><label for="s-in">Restore from backup</label>' +
+          '<textarea id="s-in" class="ta ta-short" spellcheck="false" placeholder="{ \u2026 }"></textarea></div>' +
+        '<p class="err" hidden></p>' +
+        '<button class="btn" data-restore>Add these tabs</button>' +
+      "</div></div>");
+
+  $("#s-repo", screen).value = store.settings.repo || "";
+  $("#s-token", screen).value = store.settings.token || "";
+  $("#s-out", screen).value = JSON.stringify(
+    { app:"woodshed", version:APP_VERSION, schema:SCHEMA, tabs:store.tabs, shelves:store.shelves }, null, 2);
+
+  $("[data-save]", screen).addEventListener("click", () => {
+    store.settings.repo = $("#s-repo", screen).value.trim();
+    store.settings.token = $("#s-token", screen).value.trim();
+    save(); toast("Saved"); go("library");
+  });
+  $("[data-refresh]", screen).addEventListener("click", () => { fetchIndex(); toast("Refreshing"); });
+  $("[data-download]", screen).addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true; btn.textContent = "Downloading\u2026";
+    let n = 0;
+    for (const entry of store.index) {
+      try { await fetchContent(entry.path); n++; } catch (err) {}
+    }
+    btn.disabled = false; btn.textContent = "Download all for offline";
+    toast(n + " tab" + (n === 1 ? "" : "s") + " available offline");
+  });
+  const unhide = $("[data-unhide]", screen);
+  if (unhide) unhide.addEventListener("click", () => { store.hidden = {}; save(); toast("All shown again"); go("library"); });
+
+  $("[data-copy]", screen).addEventListener("click", async () => {
+    const ta = $("#s-out", screen);
+    try { await navigator.clipboard.writeText(ta.value); toast("Copied"); }
+    catch (e) { ta.select(); toast("Select all, then copy"); }
+  });
+  $("[data-restore]", screen).addEventListener("click", () => {
+    const err = $(".err", screen);
+    try {
+      let p = JSON.parse($("#s-in", screen).value);
+      if (Array.isArray(p)) p = { schema:1, tabs:p };
+      p = migrate(p);
+      const incoming = (p.tabs || []).filter((t) => t && typeof t.content === "string");
+      if (!incoming.length) throw new Error("empty");
+      const ids = new Set(store.tabs.map((t) => t.id));
+      incoming.forEach((t) => { if (ids.has(t.id)) t.id = uid(); });
+      store.tabs = incoming.concat(store.tabs);
+      Object.assign(store.shelves, p.shelves || {});
+      save(); toast("Added " + incoming.length + " tab" + (incoming.length===1?"":"s")); go("library");
+    } catch (e) {
+      err.hidden = false;
+      err.textContent = "That isn't a Woodshed backup. Paste the whole block, braces included.";
+    }
+  });
+  $("[data-back]", screen).addEventListener("click", () => go("library"));
+  return screen;
+}
+
+/* ===================================================================== about */
+function About() {
+  const mode = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone
+    ? "installed" : (location.protocol === "file:" ? "local file" : "browser");
+  const screen = node(
+    '<div class="screen">' +
+      '<header class="phead"><button class="icon" data-back aria-label="Back">\u2039</button>' +
+        '<div class="ptitle"><b>About Woodshed</b></div><span style="width:34px"></span></header>' +
+      '<div class="form">' +
+        '<div class="kv"><span>App version</span><span>' + APP_VERSION + "</span></div>" +
+        '<div class="kv"><span>Data format</span><span>schema ' + SCHEMA + "</span></div>" +
+        '<div class="kv"><span>Repository</span><span>' + esc(repoSlug() || "not detected") + "</span></div>" +
+        '<div class="kv"><span>Shared tabs</span><span>' + store.index.length + "</span></div>" +
+        '<div class="kv"><span>My tabs</span><span>' + store.tabs.length + "</span></div>" +
+        '<div class="kv"><span>Cached offline</span><span>' + Object.keys(store.cache).length + "</span></div>" +
+        '<div class="kv"><span>Running as</span><span>' + mode + "</span></div>" +
+        '<div class="kv"><span>Storage</span><span>' + (storageOK ? "working" : "blocked") + "</span></div>" +
+        '<div class="prose">' +
+          "<p><b>Where things live.</b> The songs come from this site's own tabs folder \u2014 same for everyone " +
+          "who opens the link. Which shelf each one sits on, plus anything you add yourself, stays in this " +
+          "browser and is yours alone.</p>" +
+          "<p><b>Updating.</b> The app updates when the site does; just reload. Your shelves and your own tabs " +
+          "survive it. Take a backup from Settings before anything drastic.</p>" +
+          "<p><b>Offline.</b> Tabs you've opened are kept for later. Settings has a button to pull the whole " +
+          "shared library down at once, which is worth doing before a trip.</p></div>" +
+      "</div></div>");
+  $("[data-back]", screen).addEventListener("click", () => go("library"));
+  return screen;
+}
+
+/* ================================================================ fretboard */
+const FRET_COUNT = 22;
+const rawFret = (n) => 1 - Math.pow(2, -n / 12);
+const FRETS = Array.from({ length: FRET_COUNT }, (_, i) => rawFret(i + 1) / rawFret(FRET_COUNT));
+const INLAYS = [3, 5, 7, 9, 15, 17, 19, 21];
+const inlayPos = (n) => ((FRETS[n - 2] || 0) + FRETS[n - 1]) / 2;
+
+/* ====================================================================== boot */
+load();
+render();
+fetchIndex();
+window.addEventListener("online", fetchIndex);
+if (!storageOK) toast("Storage is blocked in this browser");
+</script>
+</body>
+</html>

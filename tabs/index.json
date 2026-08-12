@@ -1,0 +1,20 @@
+{
+  "generated": "2026-08-12T02:42:40.168Z",
+  "count": 2,
+  "tabs": [
+    {
+      "path": "tabs/chromatic-warm-up.txt",
+      "title": "Chromatic warm-up",
+      "artist": "Exercise",
+      "tuning": "E A D G B e",
+      "capo": ""
+    },
+    {
+      "path": "tabs/e-minor-pentatonic.txt",
+      "title": "E minor pentatonic",
+      "artist": "Exercise",
+      "tuning": "E A D G B e",
+      "capo": ""
+    }
+  ]
+}
